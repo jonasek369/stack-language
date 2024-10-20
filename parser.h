@@ -1,11 +1,13 @@
-const uint8_t TOKEN_NONE        = 0;
-const uint8_t TOKEN_KEYWORD     = 1;
-const uint8_t TOKEN_NUMBER      = 2;
-const uint8_t TOKEN_LABEL_NAME  = 3;
+const uint8_t TOKEN_NONE                = 0;
+const uint8_t TOKEN_KEYWORD             = 1;
+const uint8_t TOKEN_NUMBER              = 2;
+const uint8_t TOKEN_LABEL_NAME          = 3;
+const uint8_t TOKEN_LABEL_NOT_DEFINE    = 4;
 
 enum KEYWORDS {NOP=0, PUSH, POP, ADD, SUB, CMP, STORE, LOADF, LOAD, JMP, JNZ, INC, DEC, SWITCH, NOT, LABEL, ROT, OVER, DUP};
 
 #define KEYWORD_SIZE 18
+#define MAX_LABEL_SIZE 64
 
 const char keywords[KEYWORD_SIZE][8] = {
     "push",
@@ -154,15 +156,21 @@ Token* tokenize(char tokens[][256], int* tokenCount) {
                     if (strcmp(labels[j].data, tokens[i]) == 0) {
                         tkn.type = TOKEN_NUMBER;
                         tkn.keywordType = NOP;
-                        char* toStr = (char*)malloc(32);
+                        char* toStr = (char*)malloc(MAX_LABEL_SIZE);
                         itoa(labels[j].ptr, toStr, 10);
                         tkn.data = toStr;
                         labelFound = 1;
                         break;
                     }
                 }
-
-                if (!labelFound /*&& parsedTokens[i-1].keywordType == LABEL*/) {
+                if(!labelFound && parsedTokens[i-1].keywordType != LABEL){
+                    tkn.type = TOKEN_LABEL_NOT_DEFINE;
+                    tkn.data = malloc(strlen(tokens[i]) + 1);
+                    strcpy(tkn.data, tokens[i]);
+                    parsedTokens[i] = tkn;
+                    continue;
+                }
+                else if (!labelFound /*&& parsedTokens[i-1].keywordType == LABEL*/) {
                     tkn.type = TOKEN_LABEL_NAME;
                     labels[labelCount].data = malloc(strlen(tokens[i]) + 1);
                     if (labels[labelCount].data == NULL) {
@@ -193,6 +201,24 @@ Token* tokenize(char tokens[][256], int* tokenCount) {
         }
         strcpy(tkn.data, tokens[i]);
         parsedTokens[i] = tkn;
+    }
+    // check unset labels that have not been declared before use
+    // this alows jumping to labels that are on the end of file 
+    for (int i = 0; i < *tokenCount; i++) {
+        if(parsedTokens[i].type != TOKEN_LABEL_NOT_DEFINE){
+            continue;
+        }
+        for (size_t j = 0; j < labelCount; j++) {
+            if (strcmp(labels[j].data, parsedTokens[i].data) == 0) {
+                parsedTokens[i].type = TOKEN_NUMBER;
+                parsedTokens[i].keywordType = NOP;
+                char* toStr = (char*)malloc(MAX_LABEL_SIZE);
+                itoa(labels[j].ptr, toStr, 10);
+                free(parsedTokens[i].data);
+                parsedTokens[i].data = toStr;
+                break;
+            }
+        }
     }
     free(labels);
     return parsedTokens;

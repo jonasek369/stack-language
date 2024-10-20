@@ -1,0 +1,4 @@
+push 10000000;
+label loop;
+dec;
+jnz loop;

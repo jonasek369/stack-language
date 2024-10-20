@@ -140,11 +140,14 @@ void over(){
 void interpreter(Token* tokens, int* tokenCount){
 	size_t stackPointer = 0;
 	struct timeval  tv1, tv2;
+	STACK_TYPE cache;
+	Token t;
+
 	gettimeofday(&tv1, NULL);
 	while(stackPointer < *tokenCount){
-		Token t = tokens[stackPointer];
+		t = tokens[stackPointer];
 		if(t.keywordType == PUSH){
-			assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
+			//assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
 			pushStack(atoi(tokens[stackPointer+1].data));
 			stackPointer+=2;
 			continue;
@@ -165,9 +168,9 @@ void interpreter(Token* tokens, int* tokenCount){
 		if(t.keywordType == DUP){dup();}
 		if(t.keywordType == JNZ){
 			assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
-			STACK_TYPE v = popStack();
-			pushStack(v);
-			if(v != 0){
+			cache = popStack();
+			pushStack(cache);
+			if(cache != 0){
 				stackPointer = atoi(tokens[stackPointer+1].data);
 				continue;
 			}
@@ -186,7 +189,7 @@ void interpreter(Token* tokens, int* tokenCount){
 int main(){	
 	char tokens[128][256];
     int tokenCount = 0;
-	parseSrc(readSrcFile("main.stc"), tokens, &tokenCount);
+	parseSrc(readSrcFile("count_from_milion.stc"), tokens, &tokenCount);
 	Token* values = tokenize(tokens, &tokenCount);
 	for (int i = 0; i < tokenCount; i++) {
     	printf("Token %d: Type = %d, Data = %s keywordType=%d\n", i, (values + i)->type, (values + i)->data, (values + i)->keywordType);
