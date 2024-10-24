@@ -24,7 +24,7 @@ const size_t stackCapacity = STACK_SIZE;
 #define OK         0
 #define ERROR     -1
 
-#define DEBUG 1
+#define DEBUG 0
 
 STACK_TYPE pushStack(STACK_TYPE value){
 	if(stackSize + 1 >= stackCapacity){
@@ -104,7 +104,6 @@ void dec(){
 }
 
 void rot(){
-	// two pointer method so theres no need for second array
 	size_t lptr = 0;
 	size_t rptr = stackSize-1;
     while (lptr < rptr) {
@@ -125,6 +124,7 @@ void over(){
 }
 
 /* INSTRUCTION SET END */
+
 int64_t findInHeap(HeapObject* heap, size_t heapSize, char* toFind){
 	for(size_t i = 0; i < heapSize; i++){
 		if(strcmp(heap[i].data, toFind) == 0){

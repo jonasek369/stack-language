@@ -18,6 +18,5 @@ outc;
 dup;
 not;
 jnz end;
-pop;
 jmp outstr;
 label end;
