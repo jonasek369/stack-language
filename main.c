@@ -209,9 +209,7 @@ void interpreter(Token* tokens, int* tokenCount){
 		}
 		if(t.keywordType == JNZ){
 			assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
-			cache = popStack();
-			pushStack(cache);
-			if(cache != 0){
+			if(popStack() != 0){
 				stackPointer = atoi(tokens[stackPointer+1].data);
 				continue;
 			}
@@ -228,7 +226,7 @@ void interpreter(Token* tokens, int* tokenCount){
 		double seconds = (double)(tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
 		printf("Total time = %f seconds\n",seconds);
 		printf("program took %d iterations\n", iters);
-		printf("program ran in the rate of %f it/s\n;", iters/seconds);
+		printf("program ran in the rate of %f it/s\n", iters/seconds);
 	}
 }
 
