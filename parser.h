@@ -108,8 +108,17 @@ char* readSrcFile(const char *filename) {
         fclose(file);
         return NULL;
     }
+    bool inComment = false;
     while ((ch = fgetc(file)) != EOF) {
-        if (ch != '\n') {
+        // really basic comment function. 
+        // DO NOT USE TABS IN CODE
+        if(ch == '#'){
+            inComment = true;
+        }
+        if(ch == '\n' && inComment){
+            inComment = false;
+        }
+        if (!inComment && ch != '\n') {
             if (length >= size - 1) {
                 size *= 2;  // Double the buffer size
                 content = (char *)realloc(content, size * sizeof(char));

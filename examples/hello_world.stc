@@ -1,10 +1,10 @@
-push "hello world\n";
-call outstr;
-end;
+push "hello world\n";   # push "hello world\n", program will actually push each character on stack and put 0 to end
+call outstr;            # call function "outstr"
+end;                    # end the program here. If we dont do this program would run into outstr and we would get stack 
 
 label outstr;
-outc;
-dup;
-not;
-jnz ret;
-jmp outstr;
+dup;                    # duplicate top character
+not;                    # logical not. 1 if top was 0 else 0
+jnz ret;                # if the top now is 1 we know we hit the end of string
+outc;                   # pop and prints character on top of stack
+jmp outstr;             # loop
