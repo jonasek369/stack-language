@@ -155,7 +155,7 @@ void interpreter(Token* tokens, int* tokenCount){
 		iters++;
 		t = tokens[stackPointer];
 		if(t.keywordType == END){break;}
-		if(t.keywordType == PUSH){
+		else if(t.keywordType == PUSH){
 			assert((tokens[stackPointer+1].type == TOKEN_NUMBER || tokens[stackPointer+1].type == TOKEN_STRING)&& "Programming error: next token isnt a number!");
 			if(tokens[stackPointer+1].type == TOKEN_NUMBER){
 				pushStack(atoi(tokens[stackPointer+1].data));
@@ -174,20 +174,20 @@ void interpreter(Token* tokens, int* tokenCount){
 			stackPointer+=2;
 			continue;
 		}
-		if(t.keywordType == POP){popStack();}
-		if(t.keywordType == ADD){add();}
-		if(t.keywordType == SUB){sub();}
-		if(t.keywordType == CMP){cmp();}
-		if(t.keywordType == DEC){dec();}
-		if(t.keywordType == INC){inc();}
-		if(t.keywordType == NOT){not();}
+		else if(t.keywordType == POP){popStack();}
+		else if(t.keywordType == ADD){add();}
+		else if(t.keywordType == SUB){sub();}
+		else if(t.keywordType == CMP){cmp();}
+		else if(t.keywordType == DEC){dec();}
+		else if(t.keywordType == INC){inc();}
+		else if(t.keywordType == NOT){not();}
 
-		if(t.keywordType == LOAD){
+		else if(t.keywordType == LOAD){
 			int64_t index = findInHeap(heap, heapSize, tokens[stackPointer+1].data);
 			assert(index != -1 && "Programming error: cannot load value that hasn't been stored");
 			pushStack(*((STACK_TYPE*)heap[index].ptr));
 		}
-		if(t.keywordType == LOADF){
+		else if(t.keywordType == LOADF){
     		int64_t index = findInHeap(heap, heapSize, tokens[stackPointer + 1].data);
     		assert(index != -1 && "Programming error: cannot loadf value that hasn't been stored");
     		pushStack(*((STACK_TYPE*)heap[index].ptr));
@@ -198,7 +198,7 @@ void interpreter(Token* tokens, int* tokenCount){
     		}
 		    heapSize--;
 		}
-		if(t.keywordType == STORE){
+		else if(t.keywordType == STORE){
 			int64_t index = findInHeap(heap, heapSize, tokens[stackPointer+1].data);
 			if(index == -1){
 				STACK_TYPE* ptr = makePtr(popStack());
@@ -211,17 +211,17 @@ void interpreter(Token* tokens, int* tokenCount){
 			}
 		}
 
-		if(t.keywordType == SWITCH){sswitch();}
-		if(t.keywordType == ROT){rot();}
-		if(t.keywordType == OVER){over();}
-		if(t.keywordType == DUP){dup();}
-		if(t.keywordType == OUT){
+		else if(t.keywordType == SWITCH){sswitch();}
+		else if(t.keywordType == ROT){rot();}
+		else if(t.keywordType == OVER){over();}
+		else if(t.keywordType == DUP){dup();}
+		else if(t.keywordType == OUT){
 			printf("%d\n", popStack());
 		}
-		if(t.keywordType == OUTC){
+		else if(t.keywordType == OUTC){
 			printf("%c", popStack());
 		}
-		if(t.keywordType == JNZ){
+		else if(t.keywordType == JNZ){
 			if(popStack() != 0){
 				if(strcmp(tokens[stackPointer+1].data, "ret") == 0){
 					stackPointer = *((STACK_TYPE*)heap[0].ptr);
@@ -232,7 +232,7 @@ void interpreter(Token* tokens, int* tokenCount){
 				continue;
 			}
 		}
-		if(t.keywordType == JMP){
+		else if(t.keywordType == JMP){
 			if(strcmp(tokens[stackPointer+1].data, "ret") == 0){
 				stackPointer = *((STACK_TYPE*)heap[0].ptr);
 				continue;
@@ -241,7 +241,7 @@ void interpreter(Token* tokens, int* tokenCount){
 			stackPointer = atoi(tokens[stackPointer+1].data);
 			continue;
 		}
-		if(t.keywordType == CALL){
+		else if(t.keywordType == CALL){
 			// jmp that stores the IP where it was called from to ret
 			*((STACK_TYPE*)heap[0].ptr) = stackPointer+2;
 			assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
@@ -272,16 +272,5 @@ int main(int argc, char* argv[]){
 		}
 	}
 	interpreter(values, &tokenCount);
-	/*
-	printf("%d %d %d %d %d %d %d %d",
-	 stack[0],
-	 stack[1],
-	 stack[2],
-	 stack[3],
-	 stack[4],
-	 stack[5],
-	 stack[6],
-	 stack[7]);
-	 */
 	return 0;
 }
