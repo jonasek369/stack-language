@@ -24,7 +24,7 @@ const size_t stackCapacity = STACK_SIZE;
 #define OK         0
 #define ERROR     -1
 
-#define DEBUG 0
+#define DEBUG 1
 
 STACK_TYPE pushStack(STACK_TYPE value){
 	if(stackSize + 1 >= stackCapacity){
@@ -141,22 +141,36 @@ void interpreter(Token* tokens, int* tokenCount){
 	Token t;
 	size_t iters = 0;
 	HeapObject* heap = (HeapObject*)malloc(HEAP_SIZE*sizeof(HeapObject));
-	size_t heapSize = 0;
+	size_t heapSize = 1;
+	// We make ret object that will work as flag when we enter "functions"
+	// jumps will now be able to jump to ret
+	// also call will store IP+2 to ret
+	HeapObject ret;
+	ret.data = "ret";
+	ret.ptr = (size_t)makePtr(0);
+	heap[0] = ret;
 
 	gettimeofday(&tv1, NULL);
 	while(stackPointer < *tokenCount){
-		/*printf("[ ");
-		for(int i = 0; i < stackSize; i++){
-			printf("%d, ", stack[i]);
-		}
-		printf("]\n");*/
-		//printf("%d\n", stackPointer);
-
 		iters++;
 		t = tokens[stackPointer];
+		if(t.keywordType == END){break;}
 		if(t.keywordType == PUSH){
-			assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
-			pushStack(atoi(tokens[stackPointer+1].data));
+			assert((tokens[stackPointer+1].type == TOKEN_NUMBER || tokens[stackPointer+1].type == TOKEN_STRING)&& "Programming error: next token isnt a number!");
+			if(tokens[stackPointer+1].type == TOKEN_NUMBER){
+				pushStack(atoi(tokens[stackPointer+1].data));
+			}else{
+				// pushes null byte and all characters to the stack
+				pushStack(0);
+				for (int i = strlen(tokens[stackPointer+1].data) - 2; i >= 1; i--) {
+					if(tokens[stackPointer+1].data[i] == 'n' && tokens[stackPointer+1].data[i-1] == '\\'){
+						pushStack(10); // newline character
+						i--;
+					}else{
+						pushStack(tokens[stackPointer+1].data[i]);
+					}
+    			}
+			}
 			stackPointer+=2;
 			continue;
 		}
@@ -208,16 +222,30 @@ void interpreter(Token* tokens, int* tokenCount){
 			printf("%c", popStack());
 		}
 		if(t.keywordType == JNZ){
-			assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
 			if(popStack() != 0){
+				if(strcmp(tokens[stackPointer+1].data, "ret") == 0){
+					stackPointer = *((STACK_TYPE*)heap[0].ptr);
+					continue;
+				}
+				assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
 				stackPointer = atoi(tokens[stackPointer+1].data);
 				continue;
 			}
 		}
 		if(t.keywordType == JMP){
+			if(strcmp(tokens[stackPointer+1].data, "ret") == 0){
+				stackPointer = *((STACK_TYPE*)heap[0].ptr);
+				continue;
+			}
 			assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
 			stackPointer = atoi(tokens[stackPointer+1].data);
 			continue;
+		}
+		if(t.keywordType == CALL){
+			// jmp that stores the IP where it was called from to ret
+			*((STACK_TYPE*)heap[0].ptr) = stackPointer+2;
+			assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
+			stackPointer = atoi(tokens[stackPointer+1].data);
 		}
 		stackPointer++;
 	}

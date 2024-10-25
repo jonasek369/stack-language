@@ -4,10 +4,35 @@ const uint8_t TOKEN_NUMBER              = 2;
 const uint8_t TOKEN_LABEL_NAME          = 3;
 const uint8_t TOKEN_LABEL_NOT_DEFINE    = 4;
 const uint8_t TOKEN_VAR_NAME            = 5;
+const uint8_t TOKEN_STRING              = 6;
 
-enum KEYWORDS {NOP=0, PUSH, POP, ADD, SUB, CMP, STORE, LOADF, LOAD, JMP, JNZ, INC, DEC, SWITCH, NOT, LABEL, ROT, OVER, DUP, OUT, OUTC};
+enum KEYWORDS {
+    NOP=0,
+    PUSH,
+    POP,
+    ADD,
+    SUB,
+    CMP,
+    STORE, 
+    LOADF,
+    LOAD, 
+    JMP,
+    JNZ,
+    INC,
+    DEC,
+    SWITCH,
+    NOT,
+    LABEL, 
+    ROT,
+    OVER,
+    DUP,
+    OUT,
+    OUTC,
+    CALL, // TESTING
+    END
+};
 
-#define KEYWORD_SIZE 20
+#define KEYWORD_SIZE 22 // testing 21
 #define MAX_LABEL_SIZE 64
 
 const char keywords[KEYWORD_SIZE][8] = {
@@ -30,7 +55,9 @@ const char keywords[KEYWORD_SIZE][8] = {
     "over",
     "dup",
     "out",
-    "outc"
+    "outc",
+    "call", // TESTING
+    "end"
 };
 
 // const uint32_t keywords_sizes[KEYWORD_SIZE] = {4,3,3,3,3,5,5,4,3,3,3,3,6,3,5};
@@ -39,9 +66,13 @@ void parseSrc(char* src, char tokens[][256], int* tokenCount) {
     char token[256];
     int i = 0;
     *tokenCount = 0;
+    bool inString = false; // support for string 
 
     while (*src != '\0') {
-        if (*src == ' ' || *src == ';') {
+        if(*src == '"'){
+            inString = !inString;
+        }
+        if (!inString && (*src == ' ' || *src == ';')) {
             if (i > 0) {
                 token[i] = '\0';
                 strcpy(tokens[*tokenCount], token);
@@ -128,14 +159,14 @@ typedef struct Label HeapObject;
 
 Token* tokenize(char tokens[][256], int* tokenCount) {
     Token* parsedTokens = malloc(sizeof(Token) * (*tokenCount));
-    // TODO: if parsedTokens[i-1] != "label" then leave it as is
-    // and change it on end
     Label* labels = malloc(sizeof(Label) * (*tokenCount));
     size_t labelCount = 0;
 
 
     if (parsedTokens == NULL || labels == NULL) {
         printf("Memory allocation failed!\n");
+        free(parsedTokens);
+        free(labels);
         return NULL;
     }
     for (int i = 0; i < *tokenCount; i++) {
@@ -154,7 +185,10 @@ Token* tokenize(char tokens[][256], int* tokenCount) {
                     break;
                 }
             }
-            if(tkn.type != TOKEN_KEYWORD){
+            if (tkn.type != TOKEN_KEYWORD && strlen(tokens[i]) > 1 && tokens[i][0] == '"' && tokens[i][strlen(tokens[i]) - 1] == '"') {
+                tkn.type = TOKEN_STRING;
+            }
+            else if(tkn.type != TOKEN_KEYWORD){
                 int labelFound = 0;
                 for (size_t j = 0; j < labelCount; j++) {
                     if (strcmp(labels[j].data, tokens[i]) == 0) {
@@ -167,6 +201,7 @@ Token* tokenize(char tokens[][256], int* tokenCount) {
                         break;
                     }
                 }
+                // sets variable name
                 if( parsedTokens[i-1].keywordType == STORE || 
                     parsedTokens[i-1].keywordType == LOAD ||
                     parsedTokens[i-1].keywordType == LOADF){
@@ -176,6 +211,7 @@ Token* tokenize(char tokens[][256], int* tokenCount) {
                     parsedTokens[i] = tkn;
                     continue;
                 }
+                // sets undefined label name
                 else if(!labelFound && parsedTokens[i-1].keywordType != LABEL){
                     tkn.type = TOKEN_LABEL_NOT_DEFINE;
                     tkn.data = malloc(strlen(tokens[i]) + 1);
