@@ -156,7 +156,6 @@ void interpreter(Token* tokens, int* tokenCount){
 		t = tokens[stackPointer];
 		if(t.keywordType == END){break;}
 		else if(t.keywordType == PUSH){
-			assert((tokens[stackPointer+1].type == TOKEN_NUMBER || tokens[stackPointer+1].type == TOKEN_STRING)&& "Programming error: next token isnt a number!");
 			if(tokens[stackPointer+1].type == TOKEN_NUMBER){
 				pushStack(atoi(tokens[stackPointer+1].data));
 			}else{
@@ -227,7 +226,6 @@ void interpreter(Token* tokens, int* tokenCount){
 					stackPointer = *((STACK_TYPE*)heap[0].ptr);
 					continue;
 				}
-				assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
 				stackPointer = atoi(tokens[stackPointer+1].data);
 				continue;
 			}
@@ -237,14 +235,12 @@ void interpreter(Token* tokens, int* tokenCount){
 				stackPointer = *((STACK_TYPE*)heap[0].ptr);
 				continue;
 			}
-			assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
 			stackPointer = atoi(tokens[stackPointer+1].data);
 			continue;
 		}
 		else if(t.keywordType == CALL){
 			// jmp that stores the IP where it was called from to ret
 			*((STACK_TYPE*)heap[0].ptr) = stackPointer+2;
-			assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
 			stackPointer = atoi(tokens[stackPointer+1].data);
 		}
 		stackPointer++;
@@ -271,6 +267,7 @@ int main(int argc, char* argv[]){
     		printf("Token %d: Type = %d, Data = %s keywordType=%d\n", i, (values + i)->type, (values + i)->data, (values + i)->keywordType);
 		}
 	}
+	typeCheck(values, &tokenCount);
 	interpreter(values, &tokenCount);
 	return 0;
 }

@@ -281,3 +281,33 @@ Token* tokenize(char tokens[][256], int* tokenCount) {
     free(labels);
     return parsedTokens;
 }
+
+// checks the program before execution
+// so interpreter dosent have to check next tokens
+// and have assers
+void typeCheck(Token* tokens, int* tokenCount){
+    size_t stackPointer = 0;
+    Token t;
+    while(stackPointer < *tokenCount){
+        t = tokens[stackPointer];
+        if(t.keywordType == PUSH){
+            assert((tokens[stackPointer+1].type == TOKEN_NUMBER || tokens[stackPointer+1].type == TOKEN_STRING)&& "Programming error: next token isnt a number!");
+        }
+        if(t.keywordType == JNZ){
+            if(strcmp(tokens[stackPointer+1].data, "ret") == 0){
+            }else{
+                assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
+            }
+        }
+        if(t.keywordType == JMP){
+            if(strcmp(tokens[stackPointer+1].data, "ret") == 0){
+            }else{
+                assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
+            }
+        }
+        if(t.keywordType == CALL){
+            assert(tokens[stackPointer+1].type == TOKEN_NUMBER && "Programming error: next token isnt a number!");
+        }
+        stackPointer++;
+    }
+}
