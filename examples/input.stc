@@ -1,0 +1,15 @@
+call input;
+end;
+
+label cleaninput;
+pop;
+push 10;
+
+label input;
+inch;
+dup;
+push 13; # enter
+cmp;
+jnz ret;
+outc;
+jmp input;

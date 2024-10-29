@@ -10,6 +10,15 @@
 
 #include "parser.h"
 
+#ifdef _WIN32
+    #include <conio.h>  // For Windows _getch() function
+#elif __unix__
+    #include <termios.h>
+    #include <unistd.h>
+#else
+    #error "Platform not supported"
+#endif
+
 
 #define STACK_SIZE 1024
 #define STACK_TYPE size_t // Should be big enough to store machines ptr
@@ -64,7 +73,6 @@ void add(){
 }
 
 void sub(){
-
     pushStack(popStack() - popStack());
 }
 
@@ -126,17 +134,36 @@ void over(){
 /* INSTRUCTION SET END */
 
 int64_t findInHeap(HeapObject* heap, size_t heapSize, char* toFind){
+	size_t toFindLength = strlen(toFind);
 	for(size_t i = 0; i < heapSize; i++){
-		if(strcmp(heap[i].data, toFind) == 0){
+		if (strncmp(heap[i].data, toFind, toFindLength) == 0)
 			return i;
-		}
 	}
 	return -1;
 }
 
+// Gets character without the need of enter like base function requires
+char get_single_key() {
+	#ifdef _WIN32
+	    return _getch();
+	#elif __unix__
+	    // console could probably be set to have disabled canonical mode and echo
+	    // becuase we dont use input anywhere else
+	    // but ill leave it as is for now (probably better performance)
+    	struct termios oldt, newt;
+    	char c;
+    	tcgetattr(STDIN_FILENO, &oldt);
+    	newt = oldt;
+    	newt.c_lflag &= ~(ICANON | ECHO);
+    	tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    	c = getchar();
+	    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    	return c;
+	#endif
+}
+
 void interpreter(Token* tokens, int* tokenCount){
 	size_t stackPointer = 0;
-	struct timeval  tv1, tv2;
 	STACK_TYPE cache;
 	Token t;
 	size_t iters = 0;
@@ -149,8 +176,10 @@ void interpreter(Token* tokens, int* tokenCount){
 	ret.data = "ret";
 	ret.ptr = (size_t)makePtr(0);
 	heap[0] = ret;
-
-	gettimeofday(&tv1, NULL);
+	#if DEBUG == 1
+		struct timeval  tv1, tv2;
+		gettimeofday(&tv1, NULL);
+	#endif
 	while(stackPointer < *tokenCount){
 		iters++;
 		t = tokens[stackPointer];
@@ -192,10 +221,10 @@ void interpreter(Token* tokens, int* tokenCount){
     		pushStack(*((STACK_TYPE*)heap[index].ptr));
 		    free((STACK_TYPE*)heap[index].ptr);
 		    free(heap[index].data);
-		    for (size_t i = index; i < heapSize - 1; i++) {
-    		    heap[i] = heap[i + 1];
-    		}
-		    heapSize--;
+		    if (index < heapSize - 1) {
+			    memmove(&heap[index], &heap[index + 1], (heapSize - index - 1) * sizeof(heap[0]));
+			}
+			heapSize--;
 		}
 		else if(t.keywordType == STORE){
 			int64_t index = findInHeap(heap, heapSize, tokens[stackPointer+1].data);
@@ -243,17 +272,35 @@ void interpreter(Token* tokens, int* tokenCount){
 			*((STACK_TYPE*)heap[0].ptr) = stackPointer+2;
 			stackPointer = atoi(tokens[stackPointer+1].data);
 		}
+		else if(t.keywordType == INCH){
+			pushStack(get_single_key());
+		}
 		stackPointer++;
 	}
-	gettimeofday(&tv2, NULL);
-	if(DEBUG == 1){
+	#if DEBUG == 1
+		gettimeofday(&tv2, NULL);
 		double seconds = (double)(tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
 		printf("Total time = %f seconds\n",seconds);
 		printf("program took %d iterations\n", iters);
 		printf("program ran in the rate of %f it/s\n", iters/seconds);
-	}
+	#endif
+
 }
 
+
+double benchmark(Token* tokens, int* tokenCount, size_t runs){
+	double sumSeconds = 0;
+
+	struct timeval  tv1, tv2;
+	for(size_t i = 0; i < runs; i++){
+		gettimeofday(&tv1, NULL);
+		interpreter(tokens, tokenCount);
+		gettimeofday(&tv2, NULL);
+		double seconds = (double)(tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
+		sumSeconds += seconds;
+	}
+	return sumSeconds/runs;
+}
 
 
 int main(int argc, char* argv[]){

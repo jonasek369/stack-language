@@ -28,11 +28,12 @@ enum KEYWORDS {
     DUP,
     OUT,
     OUTC,
-    CALL, // TESTING
-    END
+    CALL,
+    END,
+    INCH
 };
 
-#define KEYWORD_SIZE 22 // testing 21
+#define KEYWORD_SIZE 23
 #define MAX_LABEL_SIZE 64
 
 const char keywords[KEYWORD_SIZE][8] = {
@@ -57,7 +58,8 @@ const char keywords[KEYWORD_SIZE][8] = {
     "out",
     "outc",
     "call", // TESTING
-    "end"
+    "end",
+    "inch"
 };
 
 // const uint32_t keywords_sizes[KEYWORD_SIZE] = {4,3,3,3,3,5,5,4,3,3,3,3,6,3,5};
@@ -159,10 +161,14 @@ struct Label{
 };
 
 
+struct HeapObject{
+    char* data;
+    size_t ptr;
+};
 
 typedef struct Token Token;
 typedef struct Label Label;
-typedef struct Label HeapObject;
+typedef struct HeapObject HeapObject;
 
 
 
