@@ -22,3 +22,4 @@
 - outc: pops value and prints it out as a character
 - call [label_name]: almost same as jump but it stores IP+1 to heap object ret so we can have functions
 - end: ends the program interpretation 
+- inch: input char wait for keyboard press and pushes keys value to stack [] -> [a]

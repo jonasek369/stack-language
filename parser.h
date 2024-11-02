@@ -57,14 +57,12 @@ const char keywords[KEYWORD_SIZE][8] = {
     "dup",
     "out",
     "outc",
-    "call", // TESTING
+    "call",
     "end",
     "inch"
 };
 
-// const uint32_t keywords_sizes[KEYWORD_SIZE] = {4,3,3,3,3,5,5,4,3,3,3,3,6,3,5};
-
-void parseSrc(char* src, char tokens[][256], int* tokenCount) {
+void parseSrc(char* src, char tokens[][256], size_t* tokenCount) {
     char token[256];
     int i = 0;
     *tokenCount = 0;
@@ -172,7 +170,7 @@ typedef struct HeapObject HeapObject;
 
 
 
-Token* tokenize(char tokens[][256], int* tokenCount) {
+Token* tokenize(char tokens[][256], size_t* tokenCount) {
     Token* parsedTokens = malloc(sizeof(Token) * (*tokenCount));
     Label* labels = malloc(sizeof(Label) * (*tokenCount));
     size_t labelCount = 0;
@@ -291,7 +289,7 @@ Token* tokenize(char tokens[][256], int* tokenCount) {
 // checks the program before execution
 // so interpreter dosent have to check next tokens
 // and have assers
-void typeCheck(Token* tokens, int* tokenCount){
+void typeCheck(Token* tokens, size_t* tokenCount){
     size_t stackPointer = 0;
     Token t;
     while(stackPointer < *tokenCount){

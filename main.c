@@ -9,6 +9,8 @@
 #include <sys/time.h>
 
 #include "parser.h"
+#include "serializer.h"
+#include "deserializer.h"
 
 #ifdef _WIN32
     #include <conio.h>  // For Windows _getch() function
@@ -24,6 +26,7 @@
 #define STACK_TYPE size_t // Should be big enough to store machines ptr
 
 #define HEAP_SIZE 128
+#define FILE_SIGNATURE_MAGIC 0x094FABC2
 
 STACK_TYPE stack[STACK_SIZE];
 STACK_TYPE stackSize = 0;
@@ -62,8 +65,7 @@ STACK_TYPE* makePtr(STACK_TYPE value){
 
 
 STACK_TYPE fromPtr(STACK_TYPE ptrValue){
-	STACK_TYPE* t = (STACK_TYPE*)ptrValue;
-	return *t;
+	return *((STACK_TYPE*)ptrValue);
 }
 
 
@@ -91,9 +93,7 @@ void cmp(){
 }
 
 void dup(){
-	STACK_TYPE temp = popStack();
-	pushStack(temp);
-	pushStack(temp);
+	pushStack(stack[stackSize-1]);
 }
 
 void sswitch(){
@@ -114,8 +114,9 @@ void dec(){
 void rot(){
 	size_t lptr = 0;
 	size_t rptr = stackSize-1;
+	STACK_TYPE temp;
     while (lptr < rptr) {
-        STACK_TYPE temp = stack[lptr];
+        temp = stack[lptr];
         stack[lptr] = stack[rptr];
         stack[rptr] = temp;
         lptr++;
@@ -149,7 +150,7 @@ char get_single_key() {
 	#elif __unix__
 	    // console could probably be set to have disabled canonical mode and echo
 	    // becuase we dont use input anywhere else
-	    // but ill leave it as is for now (probably better performance)
+	    // but ill leave it as is for now (probably better performance if its turned off)
     	struct termios oldt, newt;
     	char c;
     	tcgetattr(STDIN_FILENO, &oldt);
@@ -162,7 +163,7 @@ char get_single_key() {
 	#endif
 }
 
-void interpreter(Token* tokens, int* tokenCount){
+void interpreter(Token* tokens, size_t* tokenCount){
 	size_t stackPointer = 0;
 	STACK_TYPE cache;
 	Token t;
@@ -288,7 +289,7 @@ void interpreter(Token* tokens, int* tokenCount){
 }
 
 
-double benchmark(Token* tokens, int* tokenCount, size_t runs){
+double benchmark(Token* tokens, size_t* tokenCount, size_t runs){
 	double sumSeconds = 0;
 
 	struct timeval  tv1, tv2;
@@ -302,19 +303,78 @@ double benchmark(Token* tokens, int* tokenCount, size_t runs){
 	return sumSeconds/runs;
 }
 
+Serializer* serialize(Token* tokens, size_t* tokenCount){
+	uint32_t magic = FILE_SIGNATURE_MAGIC;
+	Serializer* ser = makeSerializer();
+
+	serializeUint32_t(ser, &magic);
+	serializeSize_t(ser, tokenCount);
+	for(size_t i = 0; i < *tokenCount; i++){
+		serializeUint8_t(ser, &tokens[i].type);
+		serializeUint8_t(ser, &tokens[i].keywordType);
+		serializeStr(ser, tokens[i].data);
+	}
+	return ser;
+}
+
+Token* deserialize(char* filePath, size_t* tokenCount){
+	Deserializer* deser = makeDeserializer(filePath);
+	uint32_t magic = deserializeUint32_t(deser);
+	assert(magic == FILE_SIGNATURE_MAGIC && "File signature magic dose not match");
+
+	*tokenCount = deserializeSize_t(deser);
+	Token* values = malloc(sizeof(Token)*(*tokenCount));
+	for(size_t i = 0; i < *tokenCount; i++){
+		values[i].type = deserializeUint8_t(deser);
+		values[i].keywordType = deserializeUint8_t(deser);
+		values[i].data = deserializeStr(deser);
+	}
+	return values;
+}
+
+bool hasMagic(char * filePath){
+	Deserializer* deser = makeDeserializer(filePath);
+	uint32_t magic = deserializeUint32_t(deser);
+	free(deser);
+	return magic == FILE_SIGNATURE_MAGIC;
+}
+
+bool endsWith(const char *str, const char *suffix) {
+    size_t lenStr = strlen(str);
+    size_t lenSuffix = strlen(suffix);
+    if (lenSuffix > lenStr) {
+        return false;
+    }
+
+    return strcmp(str + lenStr - lenSuffix, suffix) == 0;
+}
 
 int main(int argc, char* argv[]){
-	assert(argc == 2 && "You must pass stc file in arguments");
-	char tokens[512][256];
-    int tokenCount = 0;
-	parseSrc(readSrcFile(argv[argc-1]), tokens, &tokenCount);
-	Token* values = tokenize(tokens, &tokenCount);
-	if(DEBUG == 1){
-		for (int i = 0; i < tokenCount; i++) {
-    		printf("Token %d: Type = %d, Data = %s keywordType=%d\n", i, (values + i)->type, (values + i)->data, (values + i)->keywordType);
+	assert(argc >= 2 && "You must pass stc or stcb file in arguments");
+	if(hasMagic(argv[1])){
+		size_t tokenCount = 0;
+		Token* values = deserialize(argv[1], &tokenCount);
+		interpreter(values, &tokenCount);
+	}else{
+		char tokens[512][256];
+    	size_t tokenCount = 0;
+		parseSrc(readSrcFile(argv[1]), tokens, &tokenCount);
+		Token* values = tokenize(tokens, &tokenCount);
+		if(DEBUG == 1){
+			for (int i = 0; i < tokenCount; i++) {
+    			printf("Token %d: Type = %d, Data = %s keywordType=%d\n", i, (values + i)->type, (values + i)->data, (values + i)->keywordType);
+			}
+		}
+		typeCheck(values, &tokenCount);
+		interpreter(values, &tokenCount);
+		if(argc == 3){
+			char filename[255];
+    		strcpy(filename, argv[2]);
+			if(!endsWith(filename, ".stcb")){
+				strcat(filename, ".stcb");
+			}
+			saveToFile(filename, serialize(values, &tokenCount));
 		}
 	}
-	typeCheck(values, &tokenCount);
-	interpreter(values, &tokenCount);
 	return 0;
 }

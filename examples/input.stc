@@ -1,9 +1,6 @@
 call input;
+label loop;
 end;
-
-label cleaninput;
-pop;
-push 10;
 
 label input;
 inch;
